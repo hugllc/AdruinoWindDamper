@@ -1,88 +1,210 @@
-#include <math.h>
 #include <Servo.h>
 #define SERIAL_BPS 115200
+int fanspeed = 0;
 int fanpin = 11;
-int fanspeed;
 int temp1;
 int temp2;
+/*
+ * the target is the only variable that can be changed,
+ * it is usefull when setting up a new system,
+ * and could be used to tune the set up.
+ */
 int target = 50;
 int dift;
 int error;
 int pwmout;
+int servoStep;
 Servo myservo;
 
 void setup() {
   Serial.begin(SERIAL_BPS);
-  myservo.attach(9);
+  myservo.attach(8);
 }
 
 void loop() {
-  Serial.println(TCCR0A);
-  Serial.println(TCCR0B);
-  Serial.println(OCR0A);
-  temp1 = analogRead(A1);
-  
-  temp2 = analogRead(A2);
+  analogWrite(11, 75);
+  temp1 = analogRead(A0);
+  temp2 = analogRead(A1);
   dift = (temp2 - temp1);
   error = target - dift;
   /*
-   * Individual commented out serial prints,
-   * are usefull when trying to trouble shoot code
+   * these serial prints are used,
+   * for debuging.
+   * they can be individually,
+   * commented out to clean up,
+   * the serial port.
    */
-  //Serial.print("Temp T2: ");
-  //Serial.println(temp2);
-  //Serial.print("Temp T1: ");
-  //Serial.println(temp1);
-  //Serial.print("Dift: ");
-  //Serial.println(dift);
-  //Serial.print("Error: ");
-  //Serial.println(error);
+  Serial.print("Fan Speed: ");
+  Serial.println(fanspeed);
+  Serial.print("Temp T2: ");
+  Serial.println(temp2);
+  Serial.print("Temp T1: ");
+  Serial.println(temp1);
+  Serial.print("Dift: ");
+  Serial.println(dift);
+  Serial.print("Error: ");
+  Serial.println(error);
+  Serial.print("Servo Angle: ");
+  Serial.println(myservo.read());
   /*
-   * if the error is too high, let's say it just started up,
-   * turn the fan on all the way,
-   * and open the damper all the way,
-   * then wait 20 seconds.
+   * command to make the servo hold position,
+   * and to have the fan be at a constant value.
    */
-  if (error < -15)
+  if (error == 0)
   {
-    myservo.write(180);
-    analogWrite(11, 255);
-    delay(20000);
+    analogWrite(11, 75);
+    myservo.write(myservo.read());
   }
-  /* if the error is less than 0 open the damper,
-   *  then when the damper opens all the way,
-   *  turn on the fan at a mapped speed,
-   *  around the set point.
+  /*
+   * if the error is less than 0,
+   * it executes this code.
+   * each individual if statement can be thought of,
+   * as an independent peice of code,
+   * because more than one of them,
+   * can not function at the same time.
    */
-  if (error < 0) 
+  if (error <= 0)
   {
-    myservo.write(myservo.read() + 1);
-    delay(400);
-    if (myservo.read() == 180)
+    analogWrite(11, 75); //simple command to make sure the fan is always on.
+    /*
+       * if the error is between 0 and -5,
+       * the servo only takes 1 step at a time,
+       * to limit over correction.
+       */
+    if (error < 0 && error > -5)
     {
-      delay(500);
-      fanspeed = map(error, 0, -20, 0, 255);
-      analogWrite(11, fanspeed);
-      myservo.write(180);
+      int intStep;
+      intStep = myservo.read() + 1;
+      myservo.write(intStep);
+      delay(400);
+      if (myservo.read() == 180)
+      {
+        fanspeed = map(dift, 0, -30, 100, 255);
+        analogWrite(11, fanspeed);
+        if (fanspeed == 0)
+        {
+          int intStep;
+          intStep = myservo.read() - 1;
+          delay(400);
+        }
+      }
+    }
+    /*
+     * if the error is in between 5 and 10,
+     * the servo will take 2 steps at a time,
+     * to ensure that the error does not deviate,
+     * too much.
+     */
+    if (error < -5 && error > -10)
+    {
+      int intStep;
+      intStep = myservo.read() + 2;
+      myservo.write(intStep);
+      delay(400);
+      if (myservo.read() == 180)
+      {
+        fanspeed = map(dift, 0, -30, 100, 255);
+        analogWrite(11, fanspeed);
+        if (fanspeed == 0)
+        {
+          int intStep;
+          intStep = myservo.read() - 1;
+          delay(400);
+        }
+      }
+    }
+    /*
+     * if the error is in between 5 and 10,
+     * the servo will take 2 steps at a time,
+     * to ensure that the error does not deviate,
+     * too much.
+     */
+    if (error < -10)
+    {
+      int intStep;
+      intStep = myservo.read() + 3;
+      myservo.write(intStep);
+      delay(400);
+      if (myservo.read() == 180)
+      {
+        fanspeed = map(dift, 0, -30, 100, 255);
+        analogWrite(11, fanspeed);
+        if (fanspeed == 0)
+        {
+          int intStep;
+          intStep = myservo.read() - 1;
+          delay(400);
+        }
+      }
     }
 
   }
-  /* if the error is greater than 0 turn the fan off,
-   * and open the damper.
-   */
+  /*
+     * if the error is greater than 0,
+     * it executes this code.
+     * each individual if statement can be thought of,
+     * as an independent peice of code,
+     * because more than one of them,
+     * can not function at the same time.
+     */
   if (error > 0)
   {
-    analogWrite(11, 0);
+    /*
+       * if the error is between 0 and 5,
+       * the servo only takes 1 step at a time,
+       * to limit over correction.
+       */
+    if (error > 0 && error < 5)
     {
-      myservo.write(myservo.read() - 1);
+      int intStep;
+      intStep = myservo.read() - 1;
+      myservo.write(intStep);
       delay(400);
+      if (myservo.read() == 0)
+      {
+
+        int intStep;
+        intStep = myservo.read() + 1;
+        delay(400);
+      }
+    }
+    /*
+     * if the error is in between 5 and 10,
+     * the servo will take 2 steps at a time,
+     * to ensure that the error does not deviate,
+     * too much.
+     */
+    if (error > 5 && error < 10)
+    {
+      int intStep;
+      intStep = myservo.read() - 2;
+      myservo.write(intStep);
+      delay(400);
+      if (myservo.read() == 0)
+      {
+        int intStep;
+        intStep = myservo.read() + 1;
+        delay(400);
+      }
+    }
+    /*
+     * if the error is in above 10,
+     * the servo will take 3 steps at a time,
+     * to ensure that the error does not deviate,
+     * too much.
+     */
+    if (error > 10)
+    {
+      int intStep;
+      intStep = myservo.read() - 3;
+      myservo.write(intStep);
+      delay(400);
+      if (myservo.read() == 0)
+      {
+        int intStep;
+        intStep = myservo.read() + 1;
+        delay(400);
+      }
     }
   }
-  /*if the error is equal to 0,
-   * do nothing
-   */
-if (error == 0)
-{
-  
-}
 }
