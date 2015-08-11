@@ -5,6 +5,7 @@ int highLED = 7;
 int targetLED = 6;
 int fanspeed = 0;
 int fanpin = 11;
+int target;
 int temp1;
 int temp2;
 /*
@@ -17,7 +18,7 @@ int temp2;
  * then we subtract that from the target
  * and the code decides what to do.
  */
-int target = 46;
+
 int dift;
 int error;
 int pwmout;
@@ -28,11 +29,15 @@ int servoStep;
  * they are "const int" because we will only be reading them
  * and now the arduino will make sure that it is never read.
  */
-const int upButton = 3;
-const int downButton = 4;
+const int upButton = 4;
+const int downButton = 3;
 // variables to change
 int UBState = 0;
+int UBCounter = 0;
+int lastDButtonState;
+int lastUButtonState;
 int DBState = 0;
+int DBCounter = 0;
 Servo myservo;
 
 void setup() {
@@ -54,6 +59,7 @@ void setup() {
 void loop()
 {
   analogWrite(11, 75);
+  target = 56;
   temp1 = analogRead(A0);
   temp2 = analogRead(A1);
   dift = (temp2 - temp1);
@@ -65,7 +71,7 @@ void loop()
    * commented out to clean up,
    * the serial port.
    */
-  Serial.print("Fan Speed: ");
+  /*Serial.print("Fan Speed: ");
   Serial.println(fanspeed);
   Serial.print("Temp T2: ");
   Serial.println(temp2);
@@ -76,25 +82,41 @@ void loop()
   Serial.print("Error: ");
   Serial.println(error);
   Serial.print("Servo Angle: ");
-  Serial.println(myservo.read());
-
+  Serial.println(myservo.read());*/
+  Serial.print("Target: ");
+  Serial.println(target);
   //read the state of the buttons
   UBState = digitalRead(upButton);
   DBState = digitalRead(downButton);
-
-  /*
-   * push buttons to change the target,
-   * use sparingly
-   */
-  if (UBState == HIGH)
+  if (UBState != lastUButtonState)
   {
-    target = (target + 1);
+    /* if the statement has changed
+    * increment the counter.
+    */
+    if (UBState == HIGH)
+    {
+      /* if the state is HIGH the the button
+      * went form off to on
+      */
+      target = (target + 1);
+    }
   }
+  lastUButtonState = UBState;
 
-  if (DBState == HIGH)
+  if (DBState != lastDButtonState)
   {
-    target = (target - 1);
+    /* if the statement has changed
+    * increment the counter.
+    */
+    if (DBState == HIGH)
+    {
+      /* if the state is HIGH the the button
+      * went form off to on
+      */
+      target = (target - 1);
+    }
   }
+  lastDButtonState = DBState;
 
   /*
    * if the error is less than 0,
@@ -106,8 +128,6 @@ void loop()
    */
   if (error <= 0)
   {
-    digitalWrite(7, LOW);
-    digitalWrite(5, LOW);
     /*
     if the error is between o and -5.
     the servo only takes 1 step at a time
@@ -178,17 +198,17 @@ void loop()
         }
       }
     }
+
   }
 
   /*
-   * new portion of code for the area when the value
-   * is above the set point
-   */
+   * the code to executed when the
+   * erro is greater than zero
+  */
+
 
   if (error > 0)
   {
-    digitalWrite(5, LOW);
-    digitalWrite(6, LOW);
     digitalWrite(7, HIGH);
     /*
        * if the error is between 0 and 5,
