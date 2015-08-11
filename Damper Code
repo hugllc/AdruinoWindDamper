@@ -1,5 +1,8 @@
 #include <Servo.h>
 #define SERIAL_BPS 115200
+int lowLED = 5;
+int highLED = 7;
+int targetLED = 6;
 int fanspeed = 0;
 int fanpin = 11;
 int temp1;
@@ -7,21 +10,49 @@ int temp2;
 /*
  * the target is the only variable that can be changed,
  * it is usefull when setting up a new system,
- * and could be used to tune the set up.
+ * and is used to tune the set up.
+ * The thermisotrs send out a raw analog value,
+ * Which is represented by the target value.
+ * We then take the two readings and subtract them,
+ * then we subtract that from the target
+ * and the code decides what to do.
  */
-int target = 50;
+int target = 46;
 int dift;
 int error;
 int pwmout;
 int servoStep;
+/*
+ * the pins for the button to contol
+ * the target without connecting a computer.
+ * they are "const int" because we will only be reading them
+ * and now the arduino will make sure that it is never read.
+ */
+const int upButton = 3;
+const int downButton = 4;
+// variables to change
+int UBState = 0;
+int DBState = 0;
 Servo myservo;
 
 void setup() {
   Serial.begin(SERIAL_BPS);
   myservo.attach(8);
+  /*
+  * what ever pin the servo is on,
+  * you have to attach it to the pin in the code.
+  */
+  // initialize the buttons as inputs
+  pinMode(upButton, INPUT);
+  pinMode(downButton, INPUT);
+  // pins for led interface
+  pinMode(7, OUTPUT);
+  pinMode(6, OUTPUT);
+  pinMode(5, OUTPUT);
 }
 
-void loop() {
+void loop()
+{
   analogWrite(11, 75);
   temp1 = analogRead(A0);
   temp2 = analogRead(A1);
@@ -46,15 +77,25 @@ void loop() {
   Serial.println(error);
   Serial.print("Servo Angle: ");
   Serial.println(myservo.read());
+
+  //read the state of the buttons
+  UBState = digitalRead(upButton);
+  DBState = digitalRead(downButton);
+
   /*
-   * command to make the servo hold position,
-   * and to have the fan be at a constant value.
+   * push buttons to change the target,
+   * use sparingly
    */
-  if (error == 0)
+  if (UBState == HIGH)
   {
-    analogWrite(11, 75);
-    myservo.write(myservo.read());
+    target = (target + 1);
   }
+
+  if (DBState == HIGH)
+  {
+    target = (target - 1);
+  }
+
   /*
    * if the error is less than 0,
    * it executes this code.
@@ -65,90 +106,90 @@ void loop() {
    */
   if (error <= 0)
   {
-    analogWrite(11, 75); //simple command to make sure the fan is always on.
+    digitalWrite(7, LOW);
+    digitalWrite(5, LOW);
     /*
-       * if the error is between 0 and -5,
-       * the servo only takes 1 step at a time,
-       * to limit over correction.
-       */
+    if the error is between o and -5.
+    the servo only takes 1 step at a time
+    to limit over correction
+    */
     if (error < 0 && error > -5)
     {
-      int intStep;
-      intStep = myservo.read() + 1;
-      myservo.write(intStep);
-      delay(400);
+      analogWrite(11, 200); //command to turn the fan on
+      digitalWrite(5, HIGH); //command to turn the LED on
+      myservo.write(myservo.read() + 1);
+      delay(600);
       if (myservo.read() == 180)
       {
-        fanspeed = map(dift, 0, -30, 100, 255);
+        fanspeed = map(dift, 0, -30, 150, 255);
         analogWrite(11, fanspeed);
         if (fanspeed == 0)
         {
-          int intStep;
-          intStep = myservo.read() - 1;
-          delay(400);
+          digitalWrite(5, HIGH);
+          myservo.write(myservo.read() - 1);
+          delay(600);
         }
       }
     }
+
+
     /*
-     * if the error is in between 5 and 10,
-     * the servo will take 2 steps at a time,
-     * to ensure that the error does not deviate,
-     * too much.
-     */
+         * if the error is in between 5 and 10,
+         * the servo will take 2 steps at a time,
+         * to ensure that the error does not deviate,
+         * too much.
+         */
     if (error < -5 && error > -10)
     {
+      digitalWrite(5, HIGH);
       int intStep;
-      intStep = myservo.read() + 2;
-      myservo.write(intStep);
-      delay(400);
+      myservo.write(myservo.read() + 2);
+      delay(600);
       if (myservo.read() == 180)
       {
         fanspeed = map(dift, 0, -30, 100, 255);
         analogWrite(11, fanspeed);
         if (fanspeed == 0)
         {
-          int intStep;
-          intStep = myservo.read() - 1;
-          delay(400);
+          myservo.write(myservo.read() + 2);
+          delay(600);
         }
       }
     }
     /*
      * if the error is in between 5 and 10,
-     * the servo will take 2 steps at a time,
+     * the servo will take 3 steps at a time,
      * to ensure that the error does not deviate,
      * too much.
      */
     if (error < -10)
     {
-      int intStep;
-      intStep = myservo.read() + 3;
-      myservo.write(intStep);
-      delay(400);
+      digitalWrite(5, HIGH);
+      myservo.write(myservo.read() + 3);
+      delay(600);
       if (myservo.read() == 180)
       {
         fanspeed = map(dift, 0, -30, 100, 255);
         analogWrite(11, fanspeed);
         if (fanspeed == 0)
         {
-          int intStep;
-          intStep = myservo.read() - 1;
-          delay(400);
+          digitalWrite(5, HIGH);
+          myservo.write(myservo.read() + 1);
         }
       }
     }
-
   }
+
   /*
-     * if the error is greater than 0,
-     * it executes this code.
-     * each individual if statement can be thought of,
-     * as an independent peice of code,
-     * because more than one of them,
-     * can not function at the same time.
-     */
+   * new portion of code for the area when the value
+   * is above the set point
+   */
+
   if (error > 0)
   {
+    digitalWrite(5, LOW);
+    digitalWrite(6, LOW);
+    digitalWrite(7, HIGH);
     /*
        * if the error is between 0 and 5,
        * the servo only takes 1 step at a time,
@@ -156,16 +197,14 @@ void loop() {
        */
     if (error > 0 && error < 5)
     {
-      int intStep;
-      intStep = myservo.read() - 1;
-      myservo.write(intStep);
-      delay(400);
+      digitalWrite(7, HIGH);
+      myservo.write(myservo.read() - 1);
+      delay(600);
       if (myservo.read() == 0)
       {
-
-        int intStep;
-        intStep = myservo.read() + 1;
-        delay(400);
+        digitalWrite(7, HIGH);
+        myservo.write(myservo.read() + 1);
+        delay(600);
       }
     }
     /*
@@ -176,15 +215,13 @@ void loop() {
      */
     if (error > 5 && error < 10)
     {
-      int intStep;
-      intStep = myservo.read() - 2;
-      myservo.write(intStep);
-      delay(400);
+      digitalWrite(7, HIGH);
+      myservo.write(myservo.read() - 2);
+      delay(600);
       if (myservo.read() == 0)
       {
-        int intStep;
-        intStep = myservo.read() + 1;
-        delay(400);
+        myservo.write(myservo.read() + 1);
+        delay(600);
       }
     }
     /*
@@ -195,15 +232,13 @@ void loop() {
      */
     if (error > 10)
     {
-      int intStep;
-      intStep = myservo.read() - 3;
-      myservo.write(intStep);
-      delay(400);
+      digitalWrite(7, HIGH);
+      myservo.write(myservo.read() - 3);
+      delay(600);
       if (myservo.read() == 0)
       {
-        int intStep;
-        intStep = myservo.read() + 1;
-        delay(400);
+        myservo.write(myservo.read() + 1);
+        delay(600);
       }
     }
   }
