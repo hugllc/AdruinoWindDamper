@@ -54,14 +54,15 @@ void setup() {
   pinMode(7, OUTPUT);
   pinMode(6, OUTPUT);
   pinMode(5, OUTPUT);
+  target = 56;
 }
 
 void loop()
 {
   analogWrite(11, 75);
-  target = 56;
+  //target = 56;
   temp1 = analogRead(A0);
-  temp2 = analogRead(A1);
+  temp2 = analogRead(A2);
   dift = (temp2 - temp1);
   error = target - dift;
   /*
@@ -71,8 +72,8 @@ void loop()
    * commented out to clean up,
    * the serial port.
    */
-  /*Serial.print("Fan Speed: ");
-  Serial.println(fanspeed);
+  //Serial.print("Fan Speed: ");
+  //Serial.println(fanspeed);
   Serial.print("Temp T2: ");
   Serial.println(temp2);
   Serial.print("Temp T1: ");
@@ -82,10 +83,11 @@ void loop()
   Serial.print("Error: ");
   Serial.println(error);
   Serial.print("Servo Angle: ");
-  Serial.println(myservo.read());*/
+  Serial.println(myservo.read());
   Serial.print("Target: ");
   Serial.println(target);
   //read the state of the buttons
+  // holf for more than one second
   UBState = digitalRead(upButton);
   DBState = digitalRead(downButton);
   if (UBState != lastUButtonState)
@@ -99,6 +101,9 @@ void loop()
       * went form off to on
       */
       target = (target + 1);
+      digitalWrite(6, HIGH);
+      delay(600);
+      digitalWrite(6, LOW);
     }
   }
   lastUButtonState = UBState;
@@ -114,6 +119,9 @@ void loop()
       * went form off to on
       */
       target = (target - 1);
+      digitalWrite(6, HIGH);
+      delay(600);
+      digitalWrite(6, LOW);
     }
   }
   lastDButtonState = DBState;
