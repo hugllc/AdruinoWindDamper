@@ -7,7 +7,7 @@ int fanspeed = 0;
 int fanpin = 11;
 int target;
 int temp1;
-int temp2;
+int temp2; 
 /*
  * the target is the only variable that can be changed,
  * it is usefull when setting up a new system,
