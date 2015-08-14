@@ -7,7 +7,7 @@ int fanspeed = 0;
 int fanpin = 11;
 int target;
 int temp1;
-int temp2; 
+int temp2;
 /*
  * the target is the only variable that can be changed,
  * it is usefull when setting up a new system,
@@ -60,7 +60,6 @@ void setup() {
 void loop()
 {
   analogWrite(11, 75);
-  //target = 56;
   temp1 = analogRead(A0);
   temp2 = analogRead(A2);
   dift = (temp2 - temp1);
@@ -72,8 +71,8 @@ void loop()
    * commented out to clean up,
    * the serial port.
    */
-  //Serial.print("Fan Speed: ");
-  //Serial.println(fanspeed);
+  Serial.print("Fan Speed: ");
+  Serial.println(fanspeed);
   Serial.print("Temp T2: ");
   Serial.println(temp2);
   Serial.print("Temp T1: ");
@@ -86,6 +85,10 @@ void loop()
   Serial.println(myservo.read());
   Serial.print("Target: ");
   Serial.println(target);
+  Serial.print("UBState: ");
+  Serial.println(UBState);
+  Serial.print("DBState");
+  Serial.println(DBState);
   //read the state of the buttons
   // holf for more than one second
   UBState = digitalRead(upButton);
