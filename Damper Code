@@ -2,7 +2,7 @@
 #define SERIAL_BPS 115200
 int lowLED = 5;
 int highLED = 7;
-int targetLED = 6;
+int btnPressLED = 6;
 int fanspeed = 0;
 int fanpin = 11;
 int target;
